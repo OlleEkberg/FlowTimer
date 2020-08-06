@@ -8,11 +8,11 @@ sealed class TimerResult {
     class OnTick(val timeLeft: Long?): TimerResult()
     object OnStop: TimerResult()
     object OnContinue: TimerResult()
-    class OnPause(val remainingTime: Long): TimerResult()
+    class OnPause(val remainingTimeMillis: Long): TimerResult()
     class Error(val error: Exception): TimerResult()
 }
 
-enum class TimerState {
+private enum class TimerState {
     RUNNING, PAUSED, STOPPED
 }
 
@@ -26,10 +26,10 @@ private class TimerException(val type: TimerErrorTypes): Exception(type.message)
 
 class FlowTimer {
 
-    var state: TimerState = TimerState.STOPPED
-        private set
+    private var state: TimerState = TimerState.STOPPED
+    val isRunning = state == TimerState.RUNNING
 
-    fun start(countDownTimeMillis: Long, delayMillis: Long = 1000): Flow<TimerResult> =
+    fun start(countDownTimeSeconds: Long, delayMillis: Long = 1000): Flow<TimerResult> =
         flow {
             when (state) {
                 TimerState.RUNNING -> {
@@ -38,7 +38,7 @@ class FlowTimer {
                 TimerState.PAUSED -> {
                     emit(TimerResult.Error(TimerException(TimerErrorTypes.CURRENTLY_PAUSED)))
                 }
-                else -> beginCountdown(countDownTimeMillis, delayMillis).collect { emit(it) }
+                else -> beginCountdown(countDownTimeSeconds, delayMillis).collect { emit(it) }
             }
         }
 
