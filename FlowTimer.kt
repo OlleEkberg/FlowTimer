@@ -29,7 +29,7 @@ class FlowTimer {
     var state: TimerState = TimerState.STOPPED
         private set
 
-    fun start(countDownTimeSeconds: Long, delayMillis: Long = 1000): Flow<TimerResult> =
+    fun start(countDownTimeMillis: Long, delayMillis: Long = 1000): Flow<TimerResult> =
         flow {
             when (state) {
                 TimerState.RUNNING -> {
@@ -38,7 +38,7 @@ class FlowTimer {
                 TimerState.PAUSED -> {
                     emit(TimerResult.Error(TimerException(TimerErrorTypes.CURRENTLY_PAUSED)))
                 }
-                else -> beginCountdown(countDownTimeSeconds, delayMillis).collect { emit(it) }
+                else -> beginCountdown(countDownTimeMillis, delayMillis).collect { emit(it) }
             }
         }
 
