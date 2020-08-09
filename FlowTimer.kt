@@ -7,12 +7,12 @@
  *  - OnStop emits when time runs out or function stop() is called. This resets the timer and the function start() needs to be called again
  *  - OnError emits when an error occurs. For example when function start() is called on a timer that's already running
  */
-public sealed class TimerResult {
-    public class OnTick(public val timeLeftMillis: Long?): TimerResult()
-    public class OnPause(public val remainingTimeMillis: Long): TimerResult()
-    public object OnContinue: TimerResult()
-    public object OnStop: TimerResult()
-    public class OnError(public val error: Exception): TimerResult()
+sealed class TimerResult {
+    class OnTick(val timeLeftMillis: Long?): TimerResult()
+    class OnPause(val remainingTimeMillis: Long): TimerResult()
+    object OnContinue: TimerResult()
+    object OnStop: TimerResult()
+    class OnError(val error: Exception): TimerResult()
 }
 
 /**
@@ -30,7 +30,7 @@ private class TimerException(val type: TimerErrorTypes): Exception(type.message)
 /**
  * Types of exceptions the [TimerException] @param type could be
  */
-public enum class TimerErrorTypes(public val message: String) {
+enum class TimerErrorTypes(val message: String) {
     ALREADY_RUNNING("This instance of the timer is already running, create a new instance or stop your current timer"),
     CURRENTLY_PAUSED("This timer is currently paused. Choose to continue or stop to start over"),
     NO_TIMER_RUNNING("Trying to stop or pause a timer that isn't running"),
@@ -40,7 +40,7 @@ public enum class TimerErrorTypes(public val message: String) {
 /**
  * An instance of this class will create a timer. Every instance is a new separate timer
  */
-public class FlowTimer {
+class FlowTimer {
 
     /**
      * timer uses this state to keep track of itself
@@ -50,7 +50,7 @@ public class FlowTimer {
     /**
      * caller can check if the timer is currently running
      */
-    public val isRunning: Boolean = state == TimerState.RUNNING
+    val isRunning: Boolean = state == TimerState.RUNNING
 
     /**
      * Start the timer
@@ -62,7 +62,7 @@ public class FlowTimer {
      *  - Caller tries to start a timer that is already running [TimerErrorTypes.ALREADY_RUNNING]
      *  - Caller tries to start a timer which is currently paused [TimerErrorTypes.CURRENTLY_PAUSED]. Function `continue`() should be used instead
      */
-    public fun start(countDownTimeMillis: Long, delayMillis: Long = 1000): Flow<TimerResult> =
+    fun start(countDownTimeMillis: Long, delayMillis: Long = 1000): Flow<TimerResult> =
         flow {
             when (state) {
                 TimerState.RUNNING -> {
@@ -81,7 +81,7 @@ public class FlowTimer {
      * can cause timer to emit an exception if:
      *  - Caller tries to stop a timer which is already stopped [TimerErrorTypes.NO_TIMER_RUNNING]
      */
-    public fun stop(): Flow<TimerResult> =
+    fun stop(): Flow<TimerResult> =
         flow {
             if (state == TimerState.STOPPED) {
                 emit(TimerResult.OnError(TimerException(TimerErrorTypes.NO_TIMER_RUNNING)))
@@ -97,7 +97,7 @@ public class FlowTimer {
      * can cause timer to emit an exception if:
      *  - Caller tries to pause a timer which is not currently running [TimerErrorTypes.NO_TIMER_RUNNING]
      */
-    public fun pause(): Flow<TimerResult> =
+    fun pause(): Flow<TimerResult> =
         flow {
             if (state == TimerState.STOPPED) {
                 emit(TimerResult.OnError(TimerException(TimerErrorTypes.NO_TIMER_RUNNING)))
@@ -112,7 +112,7 @@ public class FlowTimer {
      * can cause timer to emit an exception if:
      *  - Caller tries to continue a timer which isn't currently paused [TimerErrorTypes.UNABLE_TO_CONTINUE]
      */
-    public fun `continue`(): Flow<TimerResult> =
+    fun `continue`(): Flow<TimerResult> =
         flow {
             if (state == TimerState.STOPPED) {
                 emit(TimerResult.OnError(TimerException(TimerErrorTypes.UNABLE_TO_CONTINUE)))
